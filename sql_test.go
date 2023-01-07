@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -151,5 +152,41 @@ func TestExcSafeSQL(t *testing.T) {
 	}
 
 	fmt.Println("Success insert new users")
+
+}
+
+func TestTransaction(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	qwr := "INSERT INTO comments (email, comment) VALUES (?,?)"
+
+	for i := 0; i < 10; i++ {
+		email := "yusron" + strconv.Itoa(i) + "@gmail.com"
+		comment := "Komentar ke-" + strconv.Itoa(i)
+
+		result, err := tx.ExecContext(ctx, qwr, email, comment)
+		if err != nil {
+			panic(err)
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Comment ID :", id)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		panic(err)
+	}
 
 }
